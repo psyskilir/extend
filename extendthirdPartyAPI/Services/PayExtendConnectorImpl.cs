@@ -3,6 +3,7 @@ using System.Text;
 using System.Text.Json;
 using extendthirdPartyAPI.Models;
 using System.Text.Json.Serialization;
+using System.Net;
 
 namespace extendthirdPartyAPI.Services
 {
@@ -23,10 +24,8 @@ namespace extendthirdPartyAPI.Services
             _tokenManager = tokenManager;
         }
 
-        public async Task<Paginations> GetVirtualCards(String queryString)
-        { 
-            AuthToken token = await GetAuthToken();
-
+        public async Task<Paginations> GetVirtualCards(String queryString, String token)
+        {
             String url = URI + "virtualcards";
 
             if (queryString != null)
@@ -39,47 +38,33 @@ namespace extendthirdPartyAPI.Services
 
             request.Headers.Add("Accept", "application/vnd.paywithextend.v2021-03-12+json");
           
-            request.Headers.Add("Authorization", "Bearer " + token.Token);
-            _logger.LogInformation("Auth bearer: " + token.Token);
+            request.Headers.Add("Authorization", "Bearer " + token);
+            _logger.LogInformation("Auth bearer: " + token);
             using (var response = await httpClient.SendAsync(request))
             {
-                String resp = await response.Content.ReadAsStringAsync();
-                
-                _logger.LogInformation("Resp : " + resp);
+                String payload = await response.Content.ReadAsStringAsync();
 
-               Paginations pages = JsonSerializer.Deserialize<Paginations>(resp);
-                return pages;
+                if (!response.IsSuccessStatusCode)
+                {
+                    throw new ApiException { StatusCode = response.StatusCode, Message = payload };
+                }
+
+                
+                _logger.LogInformation("Resp : " + payload);
+
+               Paginations pages = JsonSerializer.Deserialize<Paginations>(payload);
+               return pages;
             }
 
            
         }
 
-        private async Task SignIn(UserCrential credential, String id)
+        public async Task<Transactions> GetCardTransactions(string cardId, string queryString, string token)
         {
-            var httpClient = _httpClientFactory.CreateClient();
-            var request = new HttpRequestMessage(HttpMethod.Post, URI + "signin");
-            var jsonCred = JsonSerializer.Serialize(credential);
-
-       
-            request.Content = new StringContent(jsonCred, Encoding.UTF8, "application/json");
-            request.Headers.Add("Accept", "application/vnd.paywithextend.v2021-03-12+json");
-
-            using (var response = await httpClient.SendAsync(request))
+            if (string.IsNullOrEmpty(cardId))
             {
-                String resp = await response.Content.ReadAsStringAsync();
-                
-                ExtendSignInModel model = JsonSerializer.Deserialize<ExtendSignInModel>(resp);
-
-                _logger.LogInformation("Token : " + JsonSerializer.Serialize(model));
-
-                AuthToken token = new AuthToken { Token = model.Token, RefreshToken = model.RefreshToken };
-                _tokenManager.AddUserAuthToken(id, token);
+                throw new ApiException { StatusCode = HttpStatusCode.BadRequest, Message = "CardId is null" };
             }
-        }
-
-        public async Task<Transactions> GetCardTransactions(string cardId, string queryString)
-        {
-            AuthToken token = await GetAuthToken();
 
             String url = URI + "virtualcards/" + cardId + "/transactions";
 
@@ -94,34 +79,54 @@ namespace extendthirdPartyAPI.Services
 
             request.Headers.Add("Accept", "application/vnd.paywithextend.v2021-03-12+json");
 
-            request.Headers.Add("Authorization", "Bearer " + token.Token);
+            request.Headers.Add("Authorization", "Bearer " + token);
 
             using (var response = await httpClient.SendAsync(request))
             {
-                String resp = await response.Content.ReadAsStringAsync();
+                String payload = await response.Content.ReadAsStringAsync();
 
-                _logger.LogInformation("Resp : " + resp);
+                if (!response.IsSuccessStatusCode)
+                {
+                    throw new ApiException { StatusCode = response.StatusCode, Message = payload };
+                }
 
-                Transactions transactions = JsonSerializer.Deserialize<Transactions>(resp);
+                _logger.LogInformation("Resp : " + payload);
+
+                Transactions transactions = JsonSerializer.Deserialize<Transactions>(payload);
                 return transactions;
             }
         }
 
-        private async Task<AuthToken> GetAuthToken()
+        public async Task<TransactionDetails> GetTransactionDetails(string id, string token)
         {
-            AuthToken token = _tokenManager.GetUserAuthToken(USERID);
-
-
-            if (token == null)
+            if (string.IsNullOrEmpty(id))
             {
-                var cred = new UserCrential { Email = "psy00@yahoo.com", Password = "Pass$word4" };
-                await SignIn(cred, USERID);
+                throw new ApiException { StatusCode = HttpStatusCode.BadRequest, Message = "Id is null" };
             }
 
-            token = _tokenManager.GetUserAuthToken(USERID);
+            String url = URI + "transactions/" + id;
 
-            return token;
+            var httpClient = _httpClientFactory.CreateClient();
+            var request = new HttpRequestMessage(HttpMethod.Get, url);
 
+            request.Headers.Add("Accept", "application/vnd.paywithextend.v2021-03-12+json");
+
+            request.Headers.Add("Authorization", "Bearer " + token);
+
+            using (var response = await httpClient.SendAsync(request))
+            {
+                String payload = await response.Content.ReadAsStringAsync();
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    throw new ApiException { StatusCode = response.StatusCode, Message = payload };
+                }
+
+                _logger.LogInformation("Resp : " + payload);
+
+                TransactionDetails transactions = JsonSerializer.Deserialize<TransactionDetails>(payload);
+                return transactions;
+            }
         }
     }
 }
