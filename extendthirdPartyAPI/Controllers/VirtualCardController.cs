@@ -11,8 +11,11 @@ using Microsoft.Net.Http.Headers;
 
 namespace extendthirdPartyAPI.Controllers;
 
-// For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 
+/*
+ *  Pay extend API integration controller. 
+ *  
+ * */
 [ApiController]
 [Route("[controller]")]
 public class VirtualCardController : ControllerBase
@@ -28,8 +31,8 @@ public class VirtualCardController : ControllerBase
 
     [HttpGet("creditcards")]
     [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(Paginations))]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ErrorModel))]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized, Type = typeof(ErrorModel))]
     public async Task<IActionResult> GetCard()
     {
         String? authToken = null;
@@ -55,9 +58,9 @@ public class VirtualCardController : ControllerBase
 
     [HttpGet("creditcard/{id}/transactions")]
     [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(Transactions))]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ErrorModel))]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized, Type = typeof(ErrorModel))]
+    [ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(ErrorModel))]
     public async Task<IActionResult> GetCardTransaction(String id)
     {
         String? authToken = null;
@@ -82,9 +85,9 @@ public class VirtualCardController : ControllerBase
 
     [HttpGet("transactions/{id}")]
     [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(Transactions))]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound, Type = typeof(ErrorModel))]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized, Type = typeof(ErrorModel))]
+    [ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(ErrorModel))]
     public async Task<IActionResult> GetTransactionDetails(String id)
     {
         String? authToken = null;
@@ -129,13 +132,13 @@ public class VirtualCardController : ControllerBase
     {
         if (ae.StatusCode == HttpStatusCode.Unauthorized)
         {
-            return Unauthorized(ae.Message);
+            return Unauthorized(new ErrorModel { ErrorMessage = ae.Message });
         } else if (ae.StatusCode == HttpStatusCode.NotFound)
         {
-            return NotFound(ae.Message);
+            return NotFound(new ErrorModel { ErrorMessage = ae.Message });
         } else if (ae.StatusCode == HttpStatusCode.BadRequest)
         {
-            return BadRequest(ae.Message);
+            return BadRequest(new ErrorModel { ErrorMessage = ae.Message });
         }
 
         return StatusCode(StatusCodes.Status500InternalServerError, ae.Message);

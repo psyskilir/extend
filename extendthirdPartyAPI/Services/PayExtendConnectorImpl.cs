@@ -13,15 +13,13 @@ namespace extendthirdPartyAPI.Services
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly JsonSerializerOptions _options;
         private readonly ILogger<PayExtendConnectorImpl> _logger;
-        private readonly ITokenManager _tokenManager;
         private static readonly String URI = "https://api.paywithextend.com/";
 
-        public PayExtendConnectorImpl(IHttpClientFactory httpClientFactory, ILogger<PayExtendConnectorImpl> logger, ITokenManager tokenManager)
+        public PayExtendConnectorImpl(IHttpClientFactory httpClientFactory, ILogger<PayExtendConnectorImpl> logger)
         {
             _httpClientFactory = httpClientFactory;
             _options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
             _logger = logger;
-            _tokenManager = tokenManager;
         }
 
         public async Task<Paginations> GetVirtualCards(String queryString, String token)

@@ -20,7 +20,7 @@ builder.Logging.AddConsole();
 
 
 builder.Services.AddScoped<IPayExtendConnector, PayExtendConnectorImpl>();
-builder.Services.AddScoped<ITokenManager, TokenManagerImpl>();
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
