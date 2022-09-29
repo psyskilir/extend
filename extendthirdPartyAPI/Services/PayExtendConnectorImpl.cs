@@ -15,11 +15,15 @@ namespace extendthirdPartyAPI.Services
         private readonly ILogger<PayExtendConnectorImpl> _logger;
         private static readonly String URI = "https://api.paywithextend.com/";
 
+        private HttpClient _httpClient;
+        
         public PayExtendConnectorImpl(IHttpClientFactory httpClientFactory, ILogger<PayExtendConnectorImpl> logger)
         {
             _httpClientFactory = httpClientFactory;
             _options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
             _logger = logger;
+            _httpClient = _httpClientFactory.CreateClient();
+            _httpClient.Timeout = new TimeSpan(0, 0, 10);
         }
 
         public async Task<Paginations> GetVirtualCards(String queryString, String token)
@@ -31,14 +35,14 @@ namespace extendthirdPartyAPI.Services
                 _logger.LogInformation("Query : " + queryString);
                 url += queryString;
             }
-            var httpClient = _httpClientFactory.CreateClient();
+            
             var request = new HttpRequestMessage(HttpMethod.Get, url);
 
             request.Headers.Add("Accept", "application/vnd.paywithextend.v2021-03-12+json");
           
             request.Headers.Add("Authorization", "Bearer " + token);
             _logger.LogInformation("Auth bearer: " + token);
-            using (var response = await httpClient.SendAsync(request))
+            using (var response = await _httpClient.SendAsync(request))
             {
                 String payload = await response.Content.ReadAsStringAsync();
 
@@ -72,14 +76,14 @@ namespace extendthirdPartyAPI.Services
                 url += queryString;
             }
 
-            var httpClient = _httpClientFactory.CreateClient();
+           
             var request = new HttpRequestMessage(HttpMethod.Get, url);
 
             request.Headers.Add("Accept", "application/vnd.paywithextend.v2021-03-12+json");
 
             request.Headers.Add("Authorization", "Bearer " + token);
 
-            using (var response = await httpClient.SendAsync(request))
+            using (var response = await _httpClient.SendAsync(request))
             {
                 String payload = await response.Content.ReadAsStringAsync();
 
@@ -104,14 +108,12 @@ namespace extendthirdPartyAPI.Services
 
             String url = URI + "transactions/" + id;
 
-            var httpClient = _httpClientFactory.CreateClient();
-            var request = new HttpRequestMessage(HttpMethod.Get, url);
+            
+            var request = GetHttpRequestMessage(HttpMethod.Get, url, token);
 
-            request.Headers.Add("Accept", "application/vnd.paywithextend.v2021-03-12+json");
+            
 
-            request.Headers.Add("Authorization", "Bearer " + token);
-
-            using (var response = await httpClient.SendAsync(request))
+            using (var response = await _httpClient.SendAsync(request))
             {
                 String payload = await response.Content.ReadAsStringAsync();
 
@@ -126,6 +128,19 @@ namespace extendthirdPartyAPI.Services
                 return transactions;
             }
         }
+
+        private HttpRequestMessage GetHttpRequestMessage(HttpMethod method, String url, String token)
+        {
+            var request = new HttpRequestMessage(HttpMethod.Get, url);
+
+            request.Headers.Add("Accept", "application/vnd.paywithextend.v2021-03-12+json");
+
+            request.Headers.Add("Authorization", "Bearer " + token);
+
+            return request;
+        }
     }
+
+    
 }
 
